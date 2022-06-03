@@ -1,0 +1,18 @@
+name: 'Build SSDLC'
+description: "SSDLC build yaml"
+inputs:
+  deploy-key:
+    description: 'SSH deploy key for SSDLC repo'
+    required: true
+  version:
+    description: 'Version of SSDLC image to use'
+    required: true
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    DEPLOY_KEY: ${{ inputs.deploy-key }}
+    TAG: ${{ inputs.version }}
+branding:
+  icon: 'check'  
+  color: 'green'

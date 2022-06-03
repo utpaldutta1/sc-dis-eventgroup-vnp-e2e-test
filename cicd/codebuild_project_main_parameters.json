@@ -1,0 +1,58 @@
+[
+    {
+        "ParameterKey": "BuildSpecFile",
+        "ParameterValue": "cicd/buildspec.yml"
+    },
+    {
+        "ParameterKey": "IamBoundaryPolicyName",
+        "ParameterValue": "ccoe/js-developer"
+    },
+    {
+        "ParameterKey": "CostcentreTag",
+        "ParameterValue": "PD7146"
+    },
+    {
+        "ParameterKey": "ProjectTag",
+        "ParameterValue": "sc-dis"
+    },
+    {
+        "ParameterKey": "ApplicationServiceName",
+        "ParameterValue": "sc-dis-eventgroup-vnp"
+    },
+    {
+        "ParameterKey": "BuildComputeConfiguration",
+        "ParameterValue": "Small"
+    },
+    {
+        "ParameterKey": "EnvironmentTag",
+        "ParameterValue": "nonprod"
+    },
+    {
+        "ParameterKey": "BuildLogsRetentionDays",
+        "ParameterValue": "30"
+    },
+    {
+        "ParameterKey": "NonprodSubnets",
+        "ParameterValue": "subnet-04b58036352322fed,subnet-0c16c47c9a431ce17"            
+    },
+    {
+        "ParameterKey": "CodeBuildRoleName",
+        "ParameterValue": "iam-cdp-cdb-cfn-crossaccount-CodeBuildRole-1DL0R2B29139L"
+    },
+    {
+        "ParameterKey": "Environment",
+        "ParameterValue": "aws/codebuild/standard:4.0"
+    },
+    {
+        "ParameterKey": "EmailTag",
+        "ParameterValue": "scintsvcs.support@sainsburys.co.uk"
+    },
+    {
+        "ParameterKey": "NonprodVpcId",
+        "ParameterValue": "vpc-06d42997bcb3e6f6c"
+    },
+    {
+        "ParameterKey": "TestSG",
+        "ParameterValue": "sg-07bbff972455f085c"
+    }        
+]

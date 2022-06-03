@@ -1,0 +1,48 @@
+# Build specification file for Codebuild project which is triggered from CodePipeline
+
+version: 0.2
+
+env:
+  variables:
+    COM_KAFKA_SECRETS_NAME: "/kafka/core/kafka.stg.comms.food-commercial/sainsburys.applications.SIS"
+    ARGOS_KAFKA_SECRETS_NAME: "/kafka/argos/kafka-apps2.eu-west-1.staging.deveng.systems/sainsburys.applications.SIS"
+    SC_KAFKA_SECRETS_NAME: "/kafka/eu-west-1/lkc-z618y/sainsburys.applications.sc-dis" 
+    DOC_DB_SECRETS_NAME: "/documentdb/stg"
+    CURRENT_ENVIRONMENT: "stg"
+    
+  secrets-manager:
+    COM_BOOTSTRAP_SERVERS: $COM_KAFKA_SECRETS_NAME:BOOTSTRAP_SERVERS
+    COM_KEY_PASSWORD: $COM_KAFKA_SECRETS_NAME:KEY_PASSWORD
+    COM_TRUSTSTORE_PASSWORD: $COM_KAFKA_SECRETS_NAME:TRUSTSTORE_PASSWORD
+    COM_KEYSTORE_PASSWORD: $COM_KAFKA_SECRETS_NAME:KEYSTORE_PASSWORD
+    
+    ARGOS_BOOTSTRAP_SERVERS: $ARGOS_KAFKA_SECRETS_NAME:BOOTSTRAP_SERVERS
+    ARGOS_KEY_PASSWORD: $ARGOS_KAFKA_SECRETS_NAME:KEY_PASSWORD
+    ARGOS_TRUSTSTORE_PASSWORD: $ARGOS_KAFKA_SECRETS_NAME:TRUSTSTORE_PASSWORD
+    ARGOS_KEYSTORE_PASSWORD: $ARGOS_KAFKA_SECRETS_NAME:KEYSTORE_PASSWORD
+    
+    SC_BOOTSTRAP_SERVERS: $SC_KAFKA_SECRETS_NAME:BOOTSTRAP_SERVERS
+    SC_SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: $SC_KAFKA_SECRETS_NAME:SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG
+    SC_SCHEMA_REGISTRY_URL: $SC_KAFKA_SECRETS_NAME:SCHEMA_REGISTRY_URL
+    SC_SCHEMA_REGISTRY_BASIC_AUTH_USER_INFO: $SC_KAFKA_SECRETS_NAME:SCHEMA_REGISTRY_BASIC_AUTH_USER_INFO
+    
+    DOCDB_USERNAME: $DOC_DB_SECRETS_NAME:username
+    DOCDB_PASSWORD: $DOC_DB_SECRETS_NAME:password
+    HOST: $DOC_DB_SECRETS_NAME:host
+    
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+  build:
+    commands:
+      - echo Execution of automated tests started ....
+      - echo Spring profile vaule is $CURRENT_ENVIRONMENT
+      - mvn clean test -Dspring.profiles.active=$CURRENT_ENVIRONMENT --no-transfer-progress
+      
+reports:
+  arn:aws:codebuild:eu-west-1:108833517009:report-group/sc-dis-eventgroup-vnp-e2e-test:
+    files:
+      - "*.json"
+    base-directory: target
+    file-format: CucumberJson

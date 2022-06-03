@@ -1,0 +1,225 @@
+---
+Description: >-
+  CodeBuild project for automated test repository to execute tests upon PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED, PULL_REQUEST_REOPENED events in GitHub
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Microservice name
+        Parameter:
+          - ApplicationServiceName
+      - Label:
+          default: Repository Settings
+        Parameters:
+          - ApplicationServiceName
+          - AppDefaultBranch
+          - GithubOrganization
+      - Label:
+          default: Build Compute Settings
+        Parameters:
+          - BuildComputeConfiguration
+          - Environment
+      - Label:
+          default: Mandatory tags.
+        Parameters:
+          - CostcentreTag
+          - ProjectTag
+          - LiveTag
+      - Label:
+          - default: Environment tags
+        Parameters:
+          - EnvironmentTag
+          - EmailTag
+      - Label:
+          default: IAM Settings. Defined by CE team.
+        Parameters:
+          - IamBoundaryPolicy
+      - Label:
+          default: Storage Settings. Defined by CE team.
+    ParameterLabels: []
+
+Parameters:
+  GithubOrganization:
+    Type: String
+    AllowedValues:
+      - sainsburys-tech
+      - JSainsburyPLC
+    Default: sainsburys-tech
+    
+  NonprodVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Nonprod VPC Id
+
+  NonprodSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Nonprod VPC Subnets to run the test into.
+
+  CodeBuildRoleName:
+    Type: String
+    
+  TestSG:
+    Type: String
+    AllowedPattern: "sg-[a-z0-9]+"
+
+  BuildComputeConfiguration:
+    Type: String
+    Default: Small
+    AllowedValues:
+      - Small
+      - Medium
+      - Large
+
+  ApplicationServiceName:
+    Type: String
+
+  TestRepositoryName:
+    Type: String
+    Description: Name of the VCS Repository    
+
+  AppDefaultBranch:
+    Type: String
+    Default: main    
+
+  GithubToken:
+    Type: String
+    Default: /cicd/shared/github.com/token
+
+  Environment:
+    Type: String
+    Default: aws/codebuild/standard:4.0
+    AllowedValues:
+      - aws/codebuild/standard:3.0
+      - aws/codebuild/standard:4.0
+
+  BuildSpecFile:
+    Type: String
+    Default: cicd/buildspec_pr.yml
+
+  BuildLogsRetentionDays:
+    Type: Number
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653]
+    Default: 30
+
+  CostcentreTag:
+    AllowedPattern: '[\x20-\x7E]+'
+    ConstraintDescription: Must be ASCII
+    MaxLength: 128
+    MinLength: 2
+    Type: String
+
+  ProjectTag:
+    AllowedPattern: '[\x20-\x7E]+'
+    ConstraintDescription: Must be ASCII
+    MaxLength: 128
+    MinLength: 2
+    Type: String
+
+  EnvironmentTag:
+    AllowedPattern: '[\x20-\x7E]+'
+    ConstraintDescription: Must be ASCII
+    MaxLength: 128
+    MinLength: 2
+    Type: String
+    Default: management
+
+  EmailTag:
+    AllowedPattern: '[\x20-\x7E]+'
+    ConstraintDescription: Must be ASCII
+    MaxLength: 128
+    MinLength: 2
+    Type: String
+    Default: scintsvcs.support@sainsburys.co.uk
+
+  LiveTag:
+    Type: String
+    AllowedValues:
+      - "yes"
+      - "no"
+    Default: "no"
+    
+Mappings:
+  CodeBuild:
+    EnvironmentSize:
+      Small: BUILD_GENERAL1_SMALL
+      Medium: BUILD_GENERAL1_MEDIUM
+      Large: BUILD_GENERAL1_LARGE
+
+Resources:
+  BuildLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub 'codebuild/pr/${ApplicationServiceName}'
+      RetentionInDays: !Ref BuildLogsRetentionDays
+
+  ApplicationTesting:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      LogsConfig:
+        CloudWatchLogs:
+          GroupName: !Ref BuildLogsGroup
+          Status: ENABLED
+        S3Logs:
+          Location: !Sub
+            - '${ArtifactsBucketArn}/${ApplicationServiceName}/tests/logs'
+            - ArtifactsBucketArn: !ImportValue "CICD::mgmt::Bucket::Artifacts::Arn"
+          Status: ENABLED
+      Name: !Sub 'test-automation-${ApplicationServiceName}'
+      EncryptionKey: !ImportValue "CICD::mgmt::KMS::Key::Arn"
+      Artifacts:
+        Type: NO_ARTIFACTS
+      ServiceRole: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${CodeBuildRoleName}'
+      Description: !Sub 'Executes tests for ${ApplicationServiceName} in ${AWS::AccountId}'
+      Environment:
+        ComputeType: !FindInMap [ "CodeBuild", "EnvironmentSize", !Ref BuildComputeConfiguration ]
+        Image: !Ref Environment
+        Type: LINUX_CONTAINER
+        PrivilegedMode: False
+        EnvironmentVariables:
+          - Name: CFN_TPL_BUCKET
+            Type: PLAINTEXT
+            Value: !ImportValue "CICD::mgmt::Bucket::CfnTemplates::Name"
+          - Name: AWS_ACCOUNT_ID
+            Type: PLAINTEXT
+            Value: !Ref 'AWS::AccountId'
+          - Name: MICROSERVICE_NAME
+            Type: PLAINTEXT
+            Value: !Ref ApplicationServiceName
+      Source:
+        Type: GITHUB
+        ReportBuildStatus: True
+        Location: !Sub 'https://github.com/${GithubOrganization}/${TestRepositoryName}'
+        InsecureSsl: False
+        BuildSpec: !Ref BuildSpecFile
+      Tags:
+        - Key: costcentre
+          Value: !Ref 'CostcentreTag'
+        - Key: environment
+          Value: !Ref 'EnvironmentTag'
+        - Key: email
+          Value: !Ref 'EmailTag'
+        - Key: project
+          Value: !Ref 'ProjectTag'
+        - Key: live
+          Value: !Ref 'LiveTag'
+      VpcConfig:
+        VpcId: !Ref NonprodVpcId
+        Subnets: !Ref NonprodSubnets
+        SecurityGroupIds:
+          - !Ref 'TestSG'
+      Triggers:
+        Webhook: True
+        FilterGroups:
+          - - Type: EVENT
+              Pattern: "PULL_REQUEST_CREATED, PULL_REQUEST_UPDATED, PULL_REQUEST_REOPENED"
+              ExcludeMatchedPattern: False
+            - Type: HEAD_REF
+              Pattern: '^refs/heads/.*$'
+              ExcludeMatchedPattern: False
+            - Type: BASE_REF
+              Pattern: !Sub '^refs/heads/${AppDefaultBranch}$$'
+              ExcludeMatchedPattern: False          
+
+Outputs:
+  TestProjectName:
+    Value: !Ref ApplicationTesting

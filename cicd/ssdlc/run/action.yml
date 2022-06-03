@@ -1,0 +1,11 @@
+name: 'SSDLC'
+description: "SSDLC build yaml"
+runs:
+  using: 'docker'
+  image: 'docker://ssdlc'
+  env:
+    CHECKMARX_GITHUB_CHECK: "0"
+    NO_ANSI: "1"
+branding:
+  icon: 'check'  
+  color: 'green'

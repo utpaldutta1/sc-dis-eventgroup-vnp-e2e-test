@@ -1,0 +1,10 @@
+checkmarx:
+  team-id: 'ae3360ad-9ec6-4f20-852f-49d60ab1f038'
+  project-name: 'sc-dis-eventgroup-vnp-e2e-test'
+  git-url: 'git@github.com:${GITHUB_REPOSITORY}.git'
+  git-ref: '${GITHUB_REF}'
+  notification-emails:
+    - 'scintsvcs.support@sainsburys.co.uk'
+  exclude-folders-pattern: null
+  exclude-files-pattern: null
+  tolerance: {high: 0, medium: 5, low: 50, info: 50}

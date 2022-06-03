@@ -1,0 +1,31 @@
+on:
+  pull_request: {branches: ['main']}
+
+name: SSDLC
+jobs:
+  checkmarx:
+    name: Checkmarx
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Build SSDLC
+      uses: ./cicd/ssdlc/build
+      with: { version: 'v0.1.29', deploy-key: '${{ secrets.SSDLC_ACTION }}' }
+
+    - name: Build Config
+      run: |
+        [ "${GITHUB_EVENT_NAME}" = "pull_request" ] && export GITHUB_REF="refs/heads/${GITHUB_HEAD_REF}"
+        echo "$(< cicd/ssdlc/checkmarx.yml envsubst)" > cicd/ssdlc/checkmarx.yml
+  
+    - name: Checkmarx
+      uses: ./cicd/ssdlc/run
+      env:
+        SERVICE: checkmarx
+        CONFIG_PATH: /github/workspace/cicd/ssdlc/checkmarx.yml
+
+        CHECKMARX_USER: ${{ secrets.CHECKMARX_USER }}
+        CHECKMARX_PASSWORD: ${{ secrets.CHECKMARX_PASSWORD }}
+        CHECKMARX_GIT_PRIVATE_KEY: ${{ secrets.CHECKMARX_GIT_PRIVATE_KEY }}
+
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
